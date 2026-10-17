@@ -2,6 +2,7 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>LAMEA — Final Build</title>
+<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
 <style>
 html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;font-family:sans-serif}
 canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
@@ -1020,8 +1021,30 @@ class RageManager{
 
 /* ================= SAVE PROGRESS ================= */
 let currentMaxUnlockedStage=1,selectedStageMenu=1,currentStage=1,currentStageEnemiesKilled=0,currentStageTargetKills=4,stage2Gate=null;   // stage2Gate -> the Stage 2 gate object (isPermanentlyUnlocked latch)   // currentStage always mirrors the stage that is actually loaded
-function loadProgress(){try{const v=parseInt(localStorage.getItem('lamea_last_saved_stage'),10);if(v>=1&&v<=STAGE_COUNT){currentMaxUnlockedStage=v;selectedStageMenu=v;}}catch(e){}}
-function saveProgress(){try{localStorage.setItem('lamea_last_saved_stage',String(currentMaxUnlockedStage));}catch(e){}}
+/* ================= CRAZYGAMES SDK v3 (safe wrapper: every call is a no-op when the SDK is absent / not on a supported environment) ================= */
+const CG_MIDGAME=true;   // mid-game ad at the natural break after a stage-clear poem. Never on death, never at load. Set false to disable.
+const CG={ready:false,env:'disabled',playing:false,prevMuted:false,
+ sdk(){return (window.CrazyGames&&window.CrazyGames.SDK)||null;},
+ async init(){const s=this.sdk();if(!s||typeof s.init!=='function')return;
+  try{await Promise.race([s.init(),new Promise((_,rj)=>setTimeout(()=>rj(new Error('SDK init timeout')),5000))]);this.env=s.environment||'disabled';this.ready=(this.env==='crazygames'||this.env==='local');}   // calls throw on any other environment
+  catch(e){this.ready=false;}},
+ call(mod,fn,...a){if(!this.ready)return;try{const m=this.sdk()[mod],f=m&&m[fn];if(typeof f==='function')return f.apply(m,a);}catch(e){}},
+ loadingStart(){this.call('game','sdkGameLoadingStart')||this.call('game','loadingStart');},
+ loadingStop(){this.call('game','sdkGameLoadingStop')||this.call('game','loadingStop');},
+ sync(g){   // gameplayStart / gameplayStop follow the real game state (edge-triggered): menu, pause, stage-clear poem, ad and finale are all "breaks"
+  const want=g.gameState==='IN_GAME'&&!g.isPaused&&!g.adActive&&!g.modal&&!(g.finale&&g.finale.active);
+  if(want&&!this.playing){this.playing=true;this.call('game','gameplayStart');}else if(!want&&this.playing){this.playing=false;this.call('game','gameplayStop');}},
+ midgame(g,done){let fin=false,tm=0;const finish=()=>{if(fin)return;fin=true;clearTimeout(tm);g.adActive=false;try{g.audio.setMuted(this.prevMuted);}catch(e){}try{window.focus&&window.focus();}catch(e){}done();};
+  const s=this.sdk();if(!CG_MIDGAME||!this.ready||!s||!s.ad||typeof s.ad.requestAd!=='function'){done();return;}
+  g.adActive=true;this.prevMuted=g.audio.muted;tm=setTimeout(finish,120000);   // safety net: never leave the player stuck behind a lost callback
+  try{const r=s.ad.requestAd('midgame',{adStarted:()=>{try{g.audio.setMuted(true);}catch(e){}},adFinished:finish,adError:finish});if(r&&typeof r.then==='function')r.then(finish,finish);}catch(e){finish();}},
+ async boot(g){await this.init();this.loadingStart();loadProgress();this.loadingStop();   // re-read the (possibly cloud-synced) save once the SDK is ready
+  window.addEventListener('wheel',e=>e.preventDefault(),{passive:false});   // embedded on CrazyGames the page must never scroll
+  window.addEventListener('keydown',e=>{if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();});}};
+const Store={get(k){try{if(CG.ready){const s=CG.sdk();if(s.data&&typeof s.data.getItem==='function')return s.data.getItem(k);}return localStorage.getItem(k);}catch(e){return null;}},
+ set(k,v){try{if(CG.ready){const s=CG.sdk();if(s.data&&typeof s.data.setItem==='function'){s.data.setItem(k,v);return;}}localStorage.setItem(k,v);}catch(e){}}};
+function loadProgress(){try{const v=parseInt(Store.get('lamea_last_saved_stage'),10);if(v>=1&&v<=STAGE_COUNT){currentMaxUnlockedStage=v;selectedStageMenu=v;}}catch(e){}}
+function saveProgress(){Store.set('lamea_last_saved_stage',String(currentMaxUnlockedStage));}
 function getProgress(){return{currentMaxUnlockedStage,selectedStageMenu,currentStage};}
 function startSelectedLevel(stageNum){   // menu -> gameplay (Enter / tap on the middle button)
  const g=window.game;if(!g)return false;
@@ -1827,16 +1850,18 @@ class UI{
 class Game{
  constructor(){
   this.canvas=$('c');this.debug=false;this.time=0;this.fps=60;this.acc=0;
-  this.hooks={};this.gameOverT=0;this.cap=null;this.slashFx=[];this.dayMode=true;this.isPaused=false;this.respawn=null;this.tileCracks=[];this.arrows=[];this.primary=null;this.bullets=[];this.hearts=[];this.poemT=0;this.modal=null;this.reviveUsed={};this.pendingStage=0;this.wave={active:false,total:4,killed:0};this.input=new Input();this.renderer=new Renderer(this.canvas);this.camera=new Camera();this.particles=new Particles();this.ui=new UI(this);
+  this.hooks={};this.gameOverT=0;this.cap=null;this.slashFx=[];this.dayMode=true;this.isPaused=false;this.adActive=false;this.respawn=null;this.tileCracks=[];this.arrows=[];this.primary=null;this.bullets=[];this.hearts=[];this.poemT=0;this.modal=null;this.reviveUsed={};this.pendingStage=0;this.wave={active:false,total:4,killed:0};this.input=new Input();this.renderer=new Renderer(this.canvas);this.camera=new Camera();this.particles=new Particles();this.ui=new UI(this);
   this.audio=new AudioManager();this.combat=new CombatManager(this);this.cine=new CinematicManager(this);this.rage=new RageManager(this);this.finale=new Finale(this);this.gameState='MAIN_MENU';this.menu=new MainMenu(this);this.stages=new StageManager(this);
   this.checkpoint=null;this.setupAudio();$('mute').addEventListener('pointerdown',e=>{e.stopPropagation();this.toggleMute();});$('pauseBtn').addEventListener('pointerdown',e=>{e.stopPropagation();if(this.gameState==='IN_GAME'&&!this.finale.active&&!this.modal)this.isPaused=!this.isPaused;});loadProgress();this.stages.load(1);this.menu.enter();this.last=performance.now();requestAnimationFrame(t=>this.frame(t));}
  frame(now){const raw=(now-this.last)/1000;this.last=now;const dt=Math.min(Math.max(raw,0),.1);if(raw>0)this.fps=lerp(this.fps,1/raw,.05);
+  CG.sync(this);
   if(this.gameState==='IN_GAME'&&!this.renderer.lite){this.lowT=clamp((this.lowT||0)+(raw>0&&this.fps<38?raw:-raw*2),0,10);if(this.lowT>3)this.renderer.lite=true;}   // adaptive quality: sustained <38 fps for ~3 s -> lighter glow/shadow budget (one-way, no flicker)
   this.acc+=dt;const step=1/120;let n=0;while(this.acc>=step&&n<24){this.update(step);this.acc-=step;n++;}if(n>=24)this.acc=0;
   this.renderer.render(this);requestAnimationFrame(t=>this.frame(t));}
  update(dt){
   const i=this.input,p=this.player,w=this.world;this.time+=dt;
   if(this.gameState==='MAIN_MENU'){this.menu.update(dt);this.audio.update(dt);if(i.pressed('mute'))this.toggleMute();i.edge={};return;}
+  if(this.adActive){i.edge={};return;}   // a platform ad is playing: the game is fully frozen
   if(this.gameState==='GAME_OVER'||this.gameState==='STAGE_CLEAR'){this.audio.update(dt);if(this.gameState==='STAGE_CLEAR')this.poemT+=dt;i.edge={};return;}
   if(this.isPaused){this.audio.update(dt);i.edge={};return;}   // paused: gameplay frozen, rendering continues
   if(this.respawn){const r=this.respawn;r.t+=dt;if(!r.done&&r.t>=.25){r.done=true;this.doRespawn();}if(r.t>=.5)this.respawn=null;this.audio.update(dt);i.edge={};return;}
@@ -1883,7 +1908,7 @@ class Game{
  unlockGate(){for(const m of this.world.monsters)if(m.wave&&m.alive){m.alive=false;this.particles.smoke(m.cx,m.y+m.h/2,6,'#1a1a1e');}
   this.world.gateOpen=true;saveProgressOnStageClear();this.ui.toast('All foes eliminated — the gate is open',3);this.emit('gateOpen');}
  showStageClear(){saveProgressOnStageClear();this.gameState='STAGE_CLEAR';this.poemT=0;
-  this.primary=()=>{if(this.poemT>=6.5){this.primary=null;this.gameState='IN_GAME';this.stages.complete(true);}};}
+  this.primary=()=>{if(this.poemT>=6.5){this.primary=null;CG.midgame(this,()=>{this.gameState='IN_GAME';this.stages.complete(true);});}};}   // natural break: poem done -> (platform ad) -> next stage
  updatePuzzle(dt){   // ONE trigger latches the gate open for good (isPermanentlyUnlocked); the 192px gate then SINKS into the earth (targetY = groundY) by Lerp
   const w=this.world;if(!w.puzzles)return;
   for(const pz of w.puzzles){const sw=pz.sw,gt=pz.gate;
@@ -1961,5 +1986,5 @@ class Game{
   c.strokeStyle='#5f5';for(const e of [this.player,this.mealin,this.box,...this.world.blocks,...this.world.monsters,...this.world.hazards])c.strokeRect(e.x,e.y,e.w,e.h);
   c.strokeStyle='#ff0';c.strokeRect(cam.x+cam.vw/2-cam.dead.w/2,cam.y+cam.vh/2-cam.dead.h/2,cam.dead.w,cam.dead.h);}
 }
-window.game=new Game();
+window.game=new Game();CG.boot(window.game);
 </script></body></html>
