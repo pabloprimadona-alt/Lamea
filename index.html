@@ -1040,7 +1040,7 @@ const CG={ready:false,env:'disabled',playing:false,prevMuted:false,
   const s=this.sdk();if(!CG_MIDGAME||!this.ready||!s||!s.ad||typeof s.ad.requestAd!=='function'){done();return;}
   g.adActive=true;this.prevMuted=g.audio.muted;tm=setTimeout(finish,120000);   // safety net: never leave the player stuck behind a lost callback
   try{const r=s.ad.requestAd('midgame',{adStarted:()=>{try{g.audio.setMuted(true);}catch(e){}},adFinished:finish,adError:finish});if(r&&typeof r.then==='function')r.then(finish,finish);}catch(e){finish();}},
- async boot(g){await this.init();this.loadingStart();loadProgress();this.loadingStop();   // re-read the (possibly cloud-synced) save once the SDK is ready
+ async boot(g){try{window.focus();}catch(e){}await this.init();this.loadingStart();loadProgress();this.loadingStop();   // re-read the (possibly cloud-synced) save once the SDK is ready
   window.addEventListener('wheel',e=>e.preventDefault(),{passive:false});   // embedded on CrazyGames the page must never scroll
   window.addEventListener('keydown',e=>{if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();});}};
 const Store={get(k){try{if(CG.ready){const s=CG.sdk();if(s.data&&typeof s.data.getItem==='function')return s.data.getItem(k);}return localStorage.getItem(k);}catch(e){return null;}},
@@ -1555,7 +1555,7 @@ class StageManager{
 class Renderer{
  constructor(canvas){this.lite=(typeof matchMedia==='function'&&matchMedia('(pointer:coarse)').matches)||(typeof navigator!=='undefined'&&((navigator.deviceMemory&&navigator.deviceMemory<=4)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=2)));   // touch devices and <=4 GB / <=2-core machines (Chromebooks) start in the lighter effects budget
   this.cv=canvas;this.c=canvas.getContext('2d');this.resize();addEventListener('resize',()=>this.resize());}
- resize(){const dpr=Math.min(window.devicePixelRatio||1,this.lite?1:1.5),cw=innerWidth,ch=innerHeight;this.cv.width=Math.round(cw*dpr);this.cv.height=Math.round(ch*dpr);
+ resize(){const dpr=Math.min(window.devicePixelRatio||1,this.lite?1:1.5)*[1,.75,.6][this.slow|0],cw=innerWidth,ch=innerHeight;this.cv.width=Math.round(cw*dpr);this.cv.height=Math.round(ch*dpr);
   this.dpr=dpr;this.scale=Math.min(cw/W,ch/H);this.ox=(cw-W*this.scale)/2;this.oy=(ch-H*this.scale)/2;}
  begin(){const c=this.c;c.setTransform(1,0,0,1,0,0);c.fillStyle='#000';c.fillRect(0,0,this.cv.width,this.cv.height);
   const k=this.scale*this.dpr;c.setTransform(k,0,0,k,this.ox*this.dpr,this.oy*this.dpr);c.save();c.beginPath();c.rect(0,0,W,H);c.clip();}
@@ -1580,7 +1580,7 @@ class Renderer{
   c.globalAlpha=1;}
  sky(g){const c=this.c,cam=g.camera,cx=cam.x,t=g.time,th=g.world.theme;
   let gr=c.createLinearGradient(0,0,0,H);gr.addColorStop(0,th.sky[0]);gr.addColorStop(.5,th.sky[1]);gr.addColorStop(.8,th.sky[2]);gr.addColorStop(1,th.sky[3]);c.fillStyle=gr;c.fillRect(0,0,W,H);
-  this.nebula(g);this.constellations(g);
+  if(!this.lite)this.nebula(g);this.constellations(g);
   const mx=th.mx-cx*.03,my=th.my;gr=c.createRadialGradient(mx,my,10,mx,my,200);gr.addColorStop(0,th.moon+'55');gr.addColorStop(1,th.moon+'00');c.fillStyle=gr;c.fillRect(mx-200,my-200,400,400);
   c.fillStyle=th.moon;c.beginPath();c.arc(mx,my,th.mr,0,6.283);c.fill();if(th.n!=='Day'){c.fillStyle='rgba(120,140,180,.35)';c.beginPath();c.arc(mx-10,my-8,8,0,6.283);c.arc(mx+12,my+10,5,0,6.283);c.fill();}
   if(th.n==='Day')this.sunShafts(g);this.ridge(cx,.05,430,80,th.ridge[0],1+g.world.lv);this.ridge(cx,.05,490,55,th.ridge[1],2.5+g.world.lv);   // LAYER 1: far mountains, factor 0.05
@@ -1717,7 +1717,11 @@ class Renderer{
    c.shadowBlur=0;c.fillStyle=hexLight(werewolfClawColor,.8);shape(.3);}
   c.restore();}
  soft(c,gr,rgb,a0,n){for(let i=0;i<=n;i++){const t=i/n,sm=t*t*(3-2*t);gr.addColorStop(t,'rgba('+rgb+','+(a0*Math.pow(1-sm,1.6)).toFixed(4)+')');}}   // heavily damped: alpha reaches exactly 0 at the radius with zero slope
- lampLight(c,l,fl,lc){
+ lampLight(c,l,fl,lc){   // cached: the light is static except for the flicker factor, so it is rendered once per (colour, quantised flicker)
+  const q=Math.round(fl/.05)*.05,key=lc+'|'+q.toFixed(2),M=this.lampCache||(this.lampCache=new Map());let S=M.get(key);
+  if(!S){S=document.createElement('canvas');S.width=S.height=380;const g=S.getContext('2d');g.scale(.5,.5);g.globalCompositeOperation='lighter';this.lampRaw(g,{x:380,y:526},q,lc);if(M.size>=16)M.delete(M.keys().next().value);M.set(key,S);}
+  c.drawImage(S,l.x-380,l.y-146-380,760,760);}
+ lampRaw(c,l,fl,lc){
   const cy=l.y-146,H1=l.y-cy,R1=230*fl;
   for(let k=0;k<6;k++){const cw=50+k*26;c.save();c.beginPath();c.moveTo(l.x-7,cy);c.lineTo(l.x+7,cy);c.lineTo(l.x+cw,l.y+6);c.lineTo(l.x-cw,l.y+6);c.closePath();c.clip();
    const r=c.createRadialGradient(l.x,cy,2,l.x,cy,R1);this.soft(c,r,lc,.15-k*.02,9);c.fillStyle=r;c.fillRect(l.x-cw-4,cy-4,cw*2+8,H1+20);c.restore();}   // 6 nested cones = feathered edges
@@ -1862,7 +1866,8 @@ class Game{
   const wake=()=>{const c=ac();if(c&&c.state!=='running'&&c.resume)c.resume().catch(()=>{});};document.addEventListener('touchend',wake);document.addEventListener('pointerdown',wake);}   // iOS/Android can leave the context suspended/interrupted
  frame(now){const raw=(now-this.last)/1000;this.last=now;const dt=Math.min(Math.max(raw,0),.1);if(raw>0)this.fps=lerp(this.fps,1/raw,.05);
   CG.sync(this);
-  if(this.gameState==='IN_GAME'&&!this.renderer.lite){this.lowT=clamp((this.lowT||0)+(raw>0&&this.fps<38?raw:-raw*2),0,10);if(this.lowT>3){this.renderer.lite=true;this.renderer.resize();}}   // adaptive quality: sustained <38 fps for ~3 s -> lighter glow/shadow budget (one-way, no flicker)
+  if(this.gameState==='IN_GAME'&&!this.renderer.lite){this.lowT=clamp((this.lowT||0)+(raw>0&&this.fps<38?dt:-dt*2),0,10);if(this.lowT>3){this.renderer.lite=true;this.renderer.resize();}}
+  if(this.gameState==='IN_GAME'&&this.renderer.lite&&(this.renderer.slow|0)<2){const th=(this.renderer.slow|0)?20:30;this.lowT2=clamp((this.lowT2||0)+(raw>0&&this.fps<th?dt:-dt*2),0,10);if(this.lowT2>4){this.renderer.slow=(this.renderer.slow|0)+1;this.lowT2=0;this.renderer.resize();}}   // stages 2/3: still <30 (then <20) fps -> internal resolution 0.75x then 0.6x (CSS-scaled; pointer mapping is CSS based)   // adaptive quality: sustained <38 fps for ~3 s -> lighter glow/shadow budget (one-way, no flicker)
   this.acc+=dt;const step=1/120;let n=0;while(this.acc>=step&&n<24){this.update(step);this.acc-=step;n++;}if(n>=24)this.acc=0;
   this.renderer.render(this);requestAnimationFrame(t=>this.frame(t));}
  update(dt){
