@@ -144,7 +144,7 @@ class Particles{   // pooled: fixed preallocated array, ring-buffer reuse, zero 
   p.a=true;p.x=x;p.y=y;p.vx=vx;p.vy=vy;p.g=g;p.life=p.max=life;p.size=size;p.color=color;p.glow=glow;p.shape=shape;p.vr=vr;p.grow=grow;p.fric=fric;p.sway=sway;p.ph=Math.random()*6;p.rot=Math.random()*6.28;}
  emit(x,y,o={}){this._e(x,y,o.vx||0,o.vy||0,o.g||0,o.life||1,o.size||2,o.color||'#fff',!!o.glow,o.shape||'c',o.vr||0,o.grow||0,o.fric||0,o.sway||0);}
  burst(x,y,n,o={}){const sp=o.spread||60,up=o.up||60,lf=o.lf||1;for(let i=0;i<n;i++)this._e(x,y,rnd(-1,1)*sp,rnd(-1,0)*up,o.g||0,rnd(.3,.7)*lf,rnd(1,3),o.color||'#fff',!!o.glow,'c',0,0,o.fric||0,o.sway||0);}
- leaf(x,y){const cols=['#5fc04a','#3f9e3a','#86d65a','#2f8a42'];this._e(x,y,rnd(-20,30),rnd(25,55),0,rnd(6,9),rnd(2.2,3.6),cols[(Math.random()*4)|0],false,'f',rnd(-3,3),0,0,rnd(18,34));}
+ leaf(x,y,cl){const cols=cl||['#5fc04a','#3f9e3a','#86d65a','#2f8a42'];this._e(x,y,rnd(-20,30),rnd(25,55),0,rnd(6,9),rnd(2.2,3.6),cols[(Math.random()*4)|0],false,'f',rnd(-3,3),0,0,rnd(18,34));}
  sparks(x,y,n=12,col='#ffe9a8'){for(let i=0;i<n;i++){const a=rnd(0,6.283),s=rnd(120,460);this._e(x,y,Math.cos(a)*s,Math.sin(a)*s-60,700,rnd(.25,.7),rnd(1,2.4),col,true,'l',0,0,0,0);}}
  smoke(x,y,n=8,col='#2a2a30'){for(let i=0;i<n;i++)this._e(x+rnd(-14,14),y+rnd(-6,6),rnd(-40,40),-rnd(20,70),0,rnd(.9,1.6),rnd(5,10),col,false,'m',0,rnd(18,36),.98,0);}
  shards(x,y,n=20,col='#4a1d12'){for(let i=0;i<n;i++){const a=rnd(-3.0,-.15),s=rnd(180,560);this._e(x,y,Math.cos(a)*s,Math.sin(a)*s,1100,rnd(.8,1.6),rnd(2,5),col,false,'s',rnd(-14,14),0,0,0);}}
@@ -1009,7 +1009,7 @@ class RageManager{
  morph(){const g=this.g,P=g.player,pa=g.particles;this.on=true;this.kt=1;P.setRage(true);P.pose='howl';P.morph=1;
   pa.impact(P.cx,P.y+P.h/2,40);pa.electric(P.cx,P.y+P.h/2,1000,22);pa.sparks(P.cx,P.y+P.h/2,50,'#ffffff');pa.smoke(P.cx,P.y+P.h,12,'#0a0a0c');
   g.cine.flash(1);g.cine.shake(14,.6);g.world.monsters.forEach(m=>m.enrage());g.audio.sfx('roar');g.audio.setMode('rage');g.emit('rageStart');}
- end(){const g=this.g;g.player.pose='';g.cine.freeze(false);g.cine.stop();g.cine.zoom(1,.8,null);this.running=false;g.player.invul=1.2;g.spawnWave();g.emit('rageReady');}
+ end(){const g=this.g;g.player.pose='';g.cine.freeze(false);g.cine.stop();g.cine.zoom(ZOOM_BASE,.8,null);this.running=false;g.player.invul=1.2;g.spawnWave();g.emit('rageReady');}
  apply(){const g=this.g,P=g.player,m=g.mealin;this.on=true;this.k=this.kt=1;P.setRage(true);P.vkd=P.vk;m.hp=1;g.dayMode=false;g.world.theme=RAGE_THEME;g.world.monsters.forEach(x=>{x.enrage();x.freezeT=0;});}
  revert(){const g=this.g,P=g.player;if(!this.on)return;this.g.wave.active=false;this.on=false;this.kt=0;P.setRage(false);P.vkd=1;g.cap=null;g.mealin.revive();g.mealin.fallT=0;g.box.broken=false;g.world.monsters.forEach(x=>{x.rage=false;x.hp=3;});}
  update(dt){
@@ -1486,6 +1486,17 @@ const THEMES=[
  {n:'Crimson Spire',sky:['#0a0306','#2a0a14','#4a1220','#240810'],ridge:['#2a0a14','#1a050c'],mid:['#1c070e','#10040a'],moon:'#ff9a8a',mx:640,my:110,mr:52,fog:'140,40,50',fa:.34,tint:'rgba(60,0,10,.14)',part:'#ff6a6a',pvy:[-26,-6],rate:12,lamp:'255,110,110',style:2,par:1.1,root:48,sc:2},
  {n:'Void Gate',sky:['#000000','#06060e','#10101c','#08080e'],ridge:['#0c0c18','#06060c'],mid:['#08080f','#040408'],moon:'#ffffff',mx:640,my:120,mr:46,fog:'90,90,120',fa:.4,tint:'rgba(0,0,10,.18)',part:'#ffffff',pvy:[-14,10],rate:14,lamp:'220,220,255',style:0,par:1.5,root:45,sc:3}];
 const DAY_THEME={n:'Day',sky:['#8fc6f0','#b4dcf8','#d6eefc','#fcefdc'],ridge:['#9ec6d6','#8bbab2'],mid:['#68a872','#52906a'],moon:'#fff0a0',mx:900,my:120,mr:46,fog:'255,255,255',fa:.25,tint:'',part:'#7bd35a',pvy:[8,26],rate:10,lamp:'255,235,160',style:1,par:1,root:60,sc:5,gnd:['#8f9f66','#4c5838'],plat:'#98a678',blk:'#818c68'};
+const ZOOM_BASE=1.28;   // closer, cinematic default framing so the characters read clearly (1.6x while climbing / hanging / pushing)
+const BIOMES=[   // all keep n:'Day' (sun/moon shafts, day music, rage contrast); everything visible differs
+ Object.assign({},DAY_THEME,{v:'Morning Meadow',sa:.75,pk:'leaf'}),
+ Object.assign({},DAY_THEME,{v:'Golden Hour',sky:['#6a6fc2','#e98f8a','#f9b87d','#ffe3ac'],ridge:['#a9788c','#8a6178'],mid:['#4c7a5c','#3a6650'],moon:'#ffb347',mx:760,my:250,mr:62,fog:'255,196,150',fa:.3,part:'#ffb6c8',cols:['#ffb6c8','#ff93b4','#ffd0dc','#f7a1c0'],pk:'petal',rate:11,lamp:'255,200,120',gnd:['#a39a62','#5a5236'],plat:'#b4a574',blk:'#8c8460',shc:'255,190,120',sa:1.1,tint:'rgba(255,150,80,.045)'}),
+ Object.assign({},DAY_THEME,{v:'Misty Pines',sky:['#6f9aa0','#9cbfbc','#c4dcd4','#e8f2e6'],ridge:['#6b8f93','#587c80'],mid:['#35604f','#2a4f42'],moon:'#f4f0c8',mx:520,my:150,mr:38,fog:'225,240,235',fa:.46,part:'#e8ffe0',style:2,pk:'firefly',rate:9,lamp:'220,255,220',gnd:['#6f8a6a','#3b4f3c'],plat:'#7f9a80',blk:'#667f69',shc:'225,255,240',sa:.4,tint:'rgba(180,230,220,.05)'}),
+ Object.assign({},DAY_THEME,{v:'Autumn Ember',sky:['#9fb4c4','#c2cfd4','#e2dccb','#f4e6c8'],ridge:['#a78a7a','#8d7366'],mid:['#b5532c','#8e3d24'],moon:'#ffd27a',mx:1000,my:140,mr:40,fog:'235,215,190',fa:.3,part:'#e0702c',cols:['#e0702c','#c8441e','#f1a23a','#a8341c'],pk:'leaf',rate:16,lamp:'255,190,110',gnd:['#a78c55','#5c4a2c'],plat:'#b59a62',blk:'#8e7650',shc:'255,215,150',sa:.8}),
+ Object.assign({},DAY_THEME,{v:'Frozen Dawn',sky:['#a8d8ee','#cbe9f6','#e6f6fb','#fdfdff'],ridge:['#bcd6e6','#a6c4d8'],mid:['#5f8aa6','#4a7490'],moon:'#ffffff',mx:300,my:130,mr:34,fog:'255,255,255',fa:.36,part:'#ffffff',pk:'snow',rate:24,lamp:'200,230,255',gnd:['#bfd3da','#7f98a4'],plat:'#c8dbe3',blk:'#a9bdc7',shc:'215,240,255',sa:.85,tint:'rgba(170,210,255,.05)'}),
+ Object.assign({},DAY_THEME,{v:'Violet Dusk',sky:['#2b2a5e','#6b4a8f','#d27aa0','#ffb98a'],ridge:['#3d2f57','#2d2347'],mid:['#241c3d','#1a1430'],moon:'#ffd9a0',mx:640,my:300,mr:56,fog:'180,110,170',fa:.34,part:'#ffd9ff',pk:'firefly',rate:12,lamp:'255,190,230',gnd:['#5c4f70','#2f2842'],plat:'#6f6286',blk:'#554a6b',shc:'255,190,170',sa:.8,stars:true,vig:.34,tint:'rgba(80,20,90,.06)'}),
+ Object.assign({},DAY_THEME,{v:'Crimson Sunset',sky:['#3a0f1f','#8a1f2f','#e2562f','#ffb14a'],ridge:['#2a0d17','#1d0810'],mid:['#190610','#12040b'],moon:'#ffd070',mx:700,my:330,mr:72,fog:'255,120,60',fa:.32,part:'#ff9a3c',pk:'ember',rate:17,lamp:'255,170,90',gnd:['#5a3a2e','#2a1814'],plat:'#6c4a3a',blk:'#523428',shc:'255,140,80',sa:1.2,vig:.36,tint:'rgba(120,10,0,.05)'}),
+ Object.assign({},DAY_THEME,{v:'Moonlit Aurora',sky:['#020617','#0b1840','#1a3a6e','#2a5a8e'],ridge:['#0a1330','#070d22'],mid:['#050a1c','#030614'],moon:'#e8f2ff',mx:820,my:130,mr:44,fog:'90,130,200',fa:.32,part:'#9fffe0',pk:'firefly',rate:13,lamp:'170,220,255',gnd:['#3a5470','#1c2c40'],plat:'#4a6684',blk:'#3a5470',shc:'170,210,255',sa:.55,stars:true,vig:.42,tint:'rgba(0,30,90,.06)'})];
+function dayThemeFor(id){return BIOMES[Math.min(BIOMES.length-1,Math.floor((Math.max(1,id|0)-1)/5))];}
 const RAGE_THEME={n:'Abyss',sky:['#000000','#010103','#02020a','#000000'],ridge:['#040408','#020204'],mid:['#030306','#020204'],moon:'#ffffff',mx:640,my:120,mr:46,fog:'20,20,30',fa:.4,tint:'',part:'#ffffff',pvy:[-14,10],rate:6,lamp:'215,222,235',style:0,par:1,root:45,sc:3};
 const STAGES={1:{name:'THE HOLLOW RAILS',tw:200,spawn:[3,17],
  ground:[[0,19,40,4],[47,19,50,4],[104,19,50,4],[160,19,40,4]],
@@ -1535,9 +1546,9 @@ function buildWorld(d){
 class StageManager{
  constructor(g){this.g=g;this.id=0;this.count=STAGE_COUNT;this.name='';this.fade=0;this.phase=null;this.next=0;this.completed={};this.warnT=0;this.pend=0;}
  data(id){return STAGES[id]||genStage(id);}
- load(id){const g=this.g,d=this.data(id),w=buildWorld(d);this.id=id;this.name=d.name;g.world=w;if(g.dayMode)w.theme=DAY_THEME;g.physics=new Physics(w);g.checkpoint=null;
+ load(id){const g=this.g,d=this.data(id),w=buildWorld(d);this.id=id;this.name=d.name;g.world=w;if(g.dayMode)w.theme=dayThemeFor(id);g.physics=new Physics(w);g.checkpoint=null;
   g.player=new Character(w.spawn.x,w.spawn.y);g.mealin=new Companion(w.spawn.x-50,w.spawn.y);g.mealin.game=g;g.box=new MusicBox(190,590);g.cap=null;g.bullets.length=0;g.hearts.length=0;if(g.rage.on){g.rage.apply();g.spawnWave();}
-  g.particles.clear();g.camera.setBounds(w.w,w.h);g.camera.snap(g.player);g.ui.toast('STAGE '+id+' — '+d.name,3);g.emit('stageLoad',id);currentStage=id;currentStageEnemiesKilled=0;stage2Gate=(id===2&&g.world.puzzles&&g.world.puzzles.length)?g.world.puzzles[0].gate:null;if(id>currentMaxUnlockedStage){currentMaxUnlockedStage=id;saveProgress();}if(id===this.count)g.emit('finalStageStart',id);}
+  g.particles.clear();g.camera.setBounds(w.w,w.h);g.camera.zoom=g.camera.targetZoom=ZOOM_BASE;g.camera.snap(g.player);g.ui.card={t:0,id,name:id<=5?d.name:dayThemeFor(id).v.toUpperCase(),biome:id<=5?dayThemeFor(id).v:'\u2014  '+(((id-1)%5)+1)+' / 5  \u2014'};/* titles match what you see: hand-named openers, then biome chapters */g.emit('stageLoad',id);currentStage=id;currentStageEnemiesKilled=0;stage2Gate=(id===2&&g.world.puzzles&&g.world.puzzles.length)?g.world.puzzles[0].gate:null;if(id>currentMaxUnlockedStage){currentMaxUnlockedStage=id;saveProgress();}if(id===this.count)g.emit('finalStageStart',id);}
  reset(){this.load(this.id);}
  complete(force){if(this.phase||this.finale||this.pend>0)return;if(this.g.rage.on&&this.id!==this.count){this.g.completeStage();return;}if(!force&&this.id!==this.count){this.g.showStageClear();return;}this.completed[this.id]=true;this.g.emit('stageComplete',this.id);
   if(this.id===this.count){this.finale=true;this.g.emit('campaignComplete');this.g.finale.start();return;}
@@ -1557,12 +1568,12 @@ class StageManager{
 class Renderer{
  constructor(canvas){this.lite=(typeof matchMedia==='function'&&matchMedia('(pointer:coarse)').matches)||(typeof navigator!=='undefined'&&((navigator.deviceMemory&&navigator.deviceMemory<=4)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=2)));   // touch devices and <=4 GB / <=2-core machines (Chromebooks) start in the lighter effects budget
   this.cv=canvas;this.c=canvas.getContext('2d');this.resize();addEventListener('resize',()=>this.resize());}
- resize(){const dpr=Math.min(window.devicePixelRatio||1,this.lite?1:1.5)*[1,.75,.6][this.slow|0],cw=innerWidth,ch=innerHeight;this.cv.width=Math.round(cw*dpr);this.cv.height=Math.round(ch*dpr);
+ resize(){const dpr=Math.min(window.devicePixelRatio||1,this.lite?1:2)*[1,.75,.6][this.slow|0],cw=innerWidth,ch=innerHeight;this.cv.width=Math.round(cw*dpr);this.cv.height=Math.round(ch*dpr);
   this.dpr=dpr;this.scale=Math.min(cw/W,ch/H);this.ox=(cw-W*this.scale)/2;this.oy=(ch-H*this.scale)/2;}
  begin(){const c=this.c;c.setTransform(1,0,0,1,0,0);c.fillStyle='#000';c.fillRect(0,0,this.cv.width,this.cv.height);
   const k=this.scale*this.dpr;c.setTransform(k,0,0,k,this.ox*this.dpr,this.oy*this.dpr);c.save();c.beginPath();c.rect(0,0,W,H);c.clip();}
  end(){this.c.restore();}
- render(g){const c=this.c;this.begin();if(g.gameState==='MAIN_MENU'){g.menu.draw(c);this.end();return;}if(g.finale.active){g.finale.draw(c);this.end();return;}this.sky(g);c.save();g.camera.apply(c);this.world(g);this.entities(g);c.restore();this.grade(g);c.save();g.camera.apply(c);this.actors(g);g.particles.draw(c);this.shockRings(g);this.tileCracks(g);this.arrowsDraw(g);this.slashFx(g);this.foreground(g);this.tags(g);this.projFx(g);if(g.debug)g.debugDraw(c);c.restore();this.post(g);g.ui.draw(c);g.tutDraw(c);g.cine.draw(c);this.bright(c);this.respawnFade(c,g);if(g.isPaused)this.pauseMenu(g,c);if(g.gameState==='STAGE_CLEAR')this.poem(g,c);this.end();}
+ render(g){const c=this.c;this.begin();if(g.gameState==='MAIN_MENU'){g.menu.draw(c);this.end();return;}if(g.finale.active){g.finale.draw(c);this.end();return;}this.sky(g);c.save();g.camera.apply(c);this.world(g);this.entities(g);c.restore();this.grade(g);c.save();g.camera.apply(c);this.actors(g);g.particles.draw(c);this.shockRings(g);this.tileCracks(g);this.arrowsDraw(g);this.slashFx(g);this.foreground(g);this.tags(g);this.projFx(g);if(g.debug)g.debugDraw(c);c.restore();this.post(g);g.ui.stageCard(c);g.ui.draw(c);g.tutDraw(c);/* cinema bars first so the HUD sits on top of them */g.cine.draw(c);this.bright(c);this.respawnFade(c,g);if(g.isPaused)this.pauseMenu(g,c);if(g.gameState==='STAGE_CLEAR')this.poem(g,c);this.end();}
  ridge(cx,f,base,amp,col,seed){const c=this.c,off=cx*f,st=48;c.fillStyle=col;c.beginPath();c.moveTo(0,H);
   for(let x=0;x<=W+st;x+=st){const wx=x+off;c.lineTo(x,base-(Math.sin(wx*.004+seed)*amp+Math.sin(wx*.011+seed*2)*amp*.5+Math.sin(wx*.027+seed)*amp*.2));}
   c.lineTo(W+st,H);c.closePath();c.fill();}
@@ -1582,6 +1593,8 @@ class Renderer{
   c.globalAlpha=1;}
  sky(g){const c=this.c,cam=g.camera,cx=cam.x,t=g.time,th=g.world.theme;
   let gr=c.createLinearGradient(0,0,0,H);gr.addColorStop(0,th.sky[0]);gr.addColorStop(.5,th.sky[1]);gr.addColorStop(.8,th.sky[2]);gr.addColorStop(1,th.sky[3]);c.fillStyle=gr;c.fillRect(0,0,W,H);
+  if(th.stars){if(!this.sf){this.sf=[];for(let i=0;i<110;i++)this.sf.push({x:Math.random()*W,y:Math.random()*H*.62,r:Math.random()*1.3+.3,p:Math.random()*6.28,s:.6+Math.random()*1.6});}
+   c.fillStyle='#fff';for(const q of this.sf){c.globalAlpha=(.3+.7*Math.abs(Math.sin(t*q.s+q.p)))*(1-q.y/(H*.7))*.9;c.beginPath();c.arc(((q.x-cx*.02)%W+W)%W,q.y,q.r,0,6.283);c.fill();}c.globalAlpha=1;}
   if(!this.lite)this.nebula(g);this.constellations(g);
   const mx=th.mx-cx*.03,my=th.my;gr=c.createRadialGradient(mx,my,10,mx,my,200);gr.addColorStop(0,th.moon+'55');gr.addColorStop(1,th.moon+'00');c.fillStyle=gr;c.fillRect(mx-200,my-200,400,400);
   c.fillStyle=th.moon;c.beginPath();c.arc(mx,my,th.mr,0,6.283);c.fill();if(th.n!=='Day'){c.fillStyle='rgba(120,140,180,.35)';c.beginPath();c.arc(mx-10,my-8,8,0,6.283);c.arc(mx+12,my+10,5,0,6.283);c.fill();}
@@ -1650,7 +1663,7 @@ class Renderer{
    if(f.type==='pillar')continue;   // removed: a screen-high black bar looked like a rendering glitch and hid the action
    else{c.strokeStyle='#030407';c.lineWidth=2.2;for(let k=0;k<7;k++){const bx=px+k*8*f.s;c.beginPath();c.moveTo(bx,H+10);c.quadraticCurveTo(bx+Math.sin(t*1.4+k+f.x)*8,H-50*f.s,bx+(k-3)*5+Math.sin(t*1.7+k)*6,H-(70+k%3*22)*f.s);c.stroke();}}}}
  tags(g){   // FORCED anti-overlap: no easing, evaluated every render frame
-  const c=this.c,L=g.player,M=g.mealin;c.font='bold 15px "Trebuchet MS",sans-serif';this.tw=this.tw||{};
+  const c=this.c,L=g.player,M=g.mealin;c.font='bold 11px "Trebuchet MS",sans-serif';this.tw=this.tw||{};
   const wd=n=>this.tw[n]||(this.tw[n]=c.measureText(n).width||120);
   const dx=Math.abs(L.x-M.x),thr=Math.max(40,(wd(L.name)+wd(M.name))/2+10);   // <45px always; also whenever the two text boxes would overlap
   this.tagClose=dx<thr||(!!this.tagClose&&dx<thr+24);                        // small hysteresis so it never flickers at the boundary
@@ -1731,15 +1744,15 @@ class Renderer{
   c.save();c.translate(l.x,l.y+4);c.scale(1,.22);const gp=c.createRadialGradient(0,0,2,0,0,170);this.soft(c,gp,lc,.26,8);c.fillStyle=gp;c.fillRect(-170,-170,340,340);c.restore();
   const hg=c.createRadialGradient(l.x,cy,10,l.x,cy,380);this.soft(c,hg,lc,.07,8);c.fillStyle=hg;c.fillRect(l.x-380,cy-380,760,760);}   // wide halo melts into the mist
  constellations(g){   // Cancer fades out as the night falls; Scorpio materialises star by star
-  const c=this.c,rk=g.rage.k,th=g.world.theme,t=g.time,day=th.n==='Day';
+  const c=this.c,rk=g.rage.k,th=g.world.theme,t=g.time,day=th.n==='Day';if(day&&!th.stars&&rk<.01)return;   // no constellation lines in a daylight sky
   const draw=(pts,col,a,reveal)=>{if(a<.02)return;c.save();c.globalAlpha=a;c.strokeStyle=col;c.lineWidth=1.4;c.shadowColor=col;c.shadowBlur=this.lite?0:9;
    const n=Math.max(1,Math.floor(reveal*pts.length));c.beginPath();pts.slice(0,n).forEach((p,i)=>{if(i)c.lineTo(p[0],p[1]);else c.moveTo(p[0],p[1]);});c.stroke();
    pts.slice(0,n).forEach((p,i)=>{c.globalAlpha=a*(.6+.4*Math.sin(t*1.7+i*1.3));c.fillStyle='#fff';c.beginPath();c.arc(p[0],p[1],i===4?4:2.6,0,6.283);c.fill();});c.restore();};
   draw(CANCER,day?'#2a9fd0':'#8fdcff',(1-rk)*(day?.55:.7),1);draw(SCORPIO,'#d96bff',rk,Math.min(1,rk*1.4));}
  sunShafts(g){   // warm sunlight shafts radiating from the sun
-  const c=this.c,t=g.time,th=g.world.theme,sx=th.mx-g.camera.x*.03,sy=th.my;c.save();c.globalCompositeOperation='lighter';
+  const c=this.c,t=g.time,th=g.world.theme,sx=th.mx-g.camera.x*.03,sy=th.my,shc=th.shc||'255,238,170',sa=th.sa==null?1:th.sa;c.save();c.globalCompositeOperation='lighter';
   for(let i=0;i<6;i++){const a=2.05+i*.17+Math.sin(t*.3+i)*.02,w=.05+.02*Math.sin(t*.5+i*2),L=1100,gr=c.createLinearGradient(sx,sy,sx+Math.cos(a)*L,sy+Math.sin(a)*L);
-   gr.addColorStop(0,'rgba(255,238,170,'+(.2+.05*Math.sin(t*.7+i))+')');gr.addColorStop(1,'rgba(255,238,170,0)');c.fillStyle=gr;c.beginPath();c.moveTo(sx,sy);c.lineTo(sx+Math.cos(a-w)*L,sy+Math.sin(a-w)*L);c.lineTo(sx+Math.cos(a+w)*L,sy+Math.sin(a+w)*L);c.closePath();c.fill();}c.restore();}
+   gr.addColorStop(0,'rgba('+shc+','+((.2+.05*Math.sin(t*.7+i))*sa).toFixed(3)+')');gr.addColorStop(1,'rgba('+shc+',0)');c.fillStyle=gr;c.beginPath();c.moveTo(sx,sy);c.lineTo(sx+Math.cos(a-w)*L,sy+Math.sin(a-w)*L);c.lineTo(sx+Math.cos(a+w)*L,sy+Math.sin(a+w)*L);c.closePath();c.fill();}c.restore();}
  rageOutlines(g,x0,x1){   // Rage readability: soft ambient path strokes + glowing silver outlines on the 32px grid
   const c=this.c,k=g.rage.k,w=g.world;c.save();c.globalAlpha=k;c.lineCap='round';c.lineJoin='round';
   c.strokeStyle='rgba(60, 60, 65, 0.4)';c.lineWidth=14;c.beginPath();
@@ -1781,7 +1794,7 @@ class Renderer{
   const h=150,gr=c.createLinearGradient(0,0,0,h);   // 11 eased stops: no visible band, no hard block
   for(let i=0;i<=10;i++){const t=i/10,e=1-t*t*(3-2*t);gr.addColorStop(t,'rgba(0,0,0,'+(.9*k*Math.pow(e,1.4)).toFixed(4)+')');}
   c.fillStyle=gr;c.fillRect(0,0,W,h);}
- post(g){const c=this.c;this.motes(g);if(g.rage.k>.01)this.ash(g);this.rageVig(g);this.topFade(c,1);const th=g.world.theme;if(th.tint){c.fillStyle=th.tint;c.fillRect(0,0,W,H);}let gr=c.createRadialGradient(W/2,H/2,H*.35,W/2,H/2,H*.95);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,'+(th.n==='Day'?.2:.65)+')');c.fillStyle=gr;c.fillRect(0,0,W,H);
+ post(g){const c=this.c;this.motes(g);if(g.rage.k>.01)this.ash(g);this.rageVig(g);this.topFade(c,1);const th=g.world.theme;if(th.tint){c.fillStyle=th.tint;c.fillRect(0,0,W,H);}let gr=c.createRadialGradient(W/2,H/2,H*.35,W/2,H/2,H*.95);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,'+(th.vig!=null?th.vig:(th.n==='Day'?.2:.65))+')');c.fillStyle=gr;c.fillRect(0,0,W,H);
   gr=c.createLinearGradient(0,H-160,0,H);gr.addColorStop(0,'rgba(50,60,85,0)');gr.addColorStop(1,'rgba(50,60,85,.18)');c.fillStyle=gr;c.fillRect(0,H-160,W,160);}
 }
 
@@ -1789,7 +1802,13 @@ class Renderer{
 class UI{
  constructor(g){this.g=g;this.msg='';this.msgT=0;}
  toast(m,d=2){this.msg=m;this.msgT=d;}
- update(dt){this.msgT-=dt;this.dropsTick(dt);}
+ update(dt){this.msgT-=dt;this.dropsTick(dt);if(this.card){this.card.t+=dt;if(this.card.t>3.6)this.card=null;}}
+ stageCard(c){const q=this.card;if(!q||this.g.gameState!=='IN_GAME')return;const t=q.t,T=3.6,inn=clamp(t/.5,0,1),out=clamp((T-t)/.6,0,1),a=Math.min(inn,out),bar=Math.round(60*a*a*(3-2*a));
+  c.save();c.fillStyle='#000';c.fillRect(0,0,W,bar);c.fillRect(0,H-bar,W,bar);
+  const ta=clamp((t-.35)/.5,0,1)*out;if(ta>0){c.globalAlpha=ta;c.textAlign='center';c.shadowColor='rgba(150,200,255,.9)';c.shadowBlur=18;c.fillStyle='#cfe6ff';c.font='12px "Trebuchet MS",sans-serif';c.fillText('S T A G E   '+String(q.id).padStart(2,'0'),W/2,H/2-96);
+   c.font='bold 40px "Trebuchet MS",Georgia,serif';c.fillStyle='#fff';c.fillText(q.name,W/2,H/2-54);c.shadowBlur=0;const lw=40+ta*320;c.strokeStyle='rgba(180,215,255,.7)';c.lineWidth=1.2;c.beginPath();c.moveTo(W/2-lw/2,H/2-36);c.lineTo(W/2+lw/2,H/2-36);c.stroke();
+   if(q.biome){c.font='italic 15px Georgia,serif';c.fillStyle='rgba(215,230,255,.88)';c.fillText(q.biome,W/2,H/2-12);}}
+  c.restore();}
  dropsTick(dt){const g=this.g,D=this.drops||(this.drops=[]),p=g.player;
   if(g.rage.on){this.dropAcc=(this.dropAcc||0)+16*dt;const w=p.maxArmor*34-6;while(this.dropAcc>=1){this.dropAcc-=1;if(D.length<70)D.push({x:30+rnd(6,w-6),y:40+14,vy:rnd(30,90),sz:rnd(1.6,3.4),life:rnd(1.4,2.6),max:2.6});}}
   for(let i=D.length-1;i>=0;i--){const q=D[i];q.life-=dt;q.vy+=420*dt;q.y+=q.vy*dt;if(q.life<=0||q.y>H+10)D.splice(i,1);}}
@@ -1877,6 +1896,12 @@ class Game{
   if(currentStageEnemiesKilled>=currentStageTargetKills){this.huntT=0;return;}
   const P=this.player;let near=false;for(const m of this.world.monsters){if(m.wave&&m.alive&&Math.abs(m.cx-P.cx)<1000){near=true;break;}}
   this.huntT=near?0:(this.huntT||0)+dt;if(this.huntT>6){this.huntT=0;this.respawnFoe();}}
+ ambient(dt,th){   // leaves / petals / snow / embers / fireflies, depending on the biome
+  const k=th.pk||'leaf';if(Math.random()>=dt*(th.rate||14))return;const P=this.particles,cam=this.camera,x=cam.x+rnd(-80,cam.vw+160);
+  if(k==='leaf'||k==='petal')P.leaf(x,cam.y-20,th.cols);
+  else if(k==='snow')P._e(x,cam.y-20,rnd(-16,16),rnd(14,34),0,rnd(8,12),rnd(1.4,3.2),'#ffffff',false,'c',0,0,0,rnd(14,26));
+  else if(k==='ember')P._e(cam.x+rnd(0,cam.vw),cam.y+rnd(cam.vh*.4,cam.vh),rnd(-14,14),-rnd(30,80),0,rnd(2.5,4.5),rnd(1.2,2.6),th.part,true,'c',0,0,0,rnd(8,18));
+  else P._e(cam.x+rnd(0,cam.vw),cam.y+rnd(cam.vh*.3,cam.vh),rnd(-8,8),-rnd(2,14),0,rnd(4,7),rnd(1.6,2.8),th.part,true,'c',0,0,0,rnd(16,30));}
  tipsOff(){if(this.tut){this.tut.on=false;this.tut.card=null;}Store.set('lamea_tips','off');}
  tutUpdate(dt){   // onboarding lives IN the first stages: controls, goal, push/pull, and the 'why can't I pass' wall. Skippable (H / click), never blocks play.
   const id=this.stages.id;let T=this.tut;
@@ -1959,7 +1984,7 @@ class Game{
    if(p.armor>0){const sd0=p.cx<h.x+h.w/2?-1:1;let placed=false;for(const sd of [sd0,-sd0]){const nx=clamp(sd<0?h.x-p.w-40:h.x+h.w+40,0,w.w-p.w);if(w.solidAt(nx+p.w/2,19*T+4)){p.x=nx;p.y=19*T-p.h-2;p.vx=sd*160;p.vy=-200;placed=true;break;}}if(!placed){const s=this.checkpoint||w.spawn;p.x=s.x;p.y=s.y;p.vx=p.vy=0;}}}
   for(const c of w.checkpoints)if(p.x>c.x&&(!this.checkpoint||c.x>this.checkpoint.x))this.checkpoint=c;
   if(p.y>H+250){const s=this.checkpoint||w.spawn;p.x=s.x;p.y=s.y;p.vx=p.vy=0;this.camera.shake(6,.3);}
-  {const th=this.world.theme;if(th.n==='Day'){if(Math.random()<dt*14)this.particles.leaf(this.camera.x+rnd(-80,this.camera.vw+160),this.camera.y-20);}else if(!this.rage.on&&Math.random()<dt*th.rate)this.particles.emit(this.camera.x+rnd(0,this.camera.vw),this.camera.y+rnd(th.pvy[0]<0?200:-10,this.camera.vh),{vx:rnd(-8,8),vy:rnd(th.pvy[0],th.pvy[1]),life:rnd(3,6),size:1.4,color:this.rage.on?'#ff5a5a':th.part,glow:true,sway:25});}
+  {const th=this.world.theme;if(th.n==='Day'){this.ambient(dt,th);}else if(!this.rage.on&&Math.random()<dt*th.rate)this.particles.emit(this.camera.x+rnd(0,this.camera.vw),this.camera.y+rnd(th.pvy[0]<0?200:-10,this.camera.vh),{vx:rnd(-8,8),vy:rnd(th.pvy[0],th.pvy[1]),life:rnd(3,6),size:1.4,color:this.rage.on?'#ff5a5a':th.part,glow:true,sway:25});}
   this.updateProjectiles(dt);this.autoZoom();this.camera.follow(p,dt);this.ui.update(dt);this.stages.update(dt);if(this.gameOverT>0){this.gameOverT-=dt;if(this.gameOverT<=0)this.stages.reset();}}
  get isRageMode(){return this.rage.on;}
  updateProjectiles(dt){const w=this.world;
@@ -1976,7 +2001,7 @@ class Game{
  nearestFoe(x,y,r){let best=null,bd=r;for(const m of this.world.monsters){if(!m.alive||(m.type==='ghost'&&m.alpha<.25))continue;const d=Math.hypot(m.cx-x,m.y+m.h/2-y);if(d<bd){bd=d;best=m;}}return best;}
  autoZoom(){   // stable camera: 1.0x for every normal move; Lerp to 1.45x ONLY for isClimbing / isHanging / isPushing
   const P=this.player,cam=this.camera;if(this.cine.zt||this.cine.frozen)return;
-  cam.targetZoom=(P.isClimbing||P.isHanging||P.isPushing)?1.45:1;cam.zoomSpeed=2.5;}
+  cam.targetZoom=(P.isClimbing||P.isHanging||P.isPushing)?1.6:ZOOM_BASE;cam.zoomSpeed=2.5;}
  unlockGate(){for(const m of this.world.monsters)if(m.wave&&m.alive){m.alive=false;this.particles.smoke(m.cx,m.y+m.h/2,6,'#1a1a1e');}
   this.world.gateOpen=true;saveProgressOnStageClear();this.ui.toast('All foes eliminated — the gate is open',3);this.emit('gateOpen');}
  showStageClear(){saveProgressOnStageClear();this.gameState='STAGE_CLEAR';this.poemT=0;
@@ -1990,7 +2015,7 @@ class Game{
    const Ml=this.mealin;if(Ml.state==='CLIMB'&&Ml.cl&&gt.lift>.02&&gt.lift<.98&&Math.abs(Ml.cx-(gt.s.x+gt.s.w/2))<40){Ml.cl=null;Ml.noGrav=false;Ml.state='FALL';}}}
  resetRun(){this.rage.on=false;this.rage.running=false;this.rage.k=this.rage.kt=0;this.dayMode=true;this.isPaused=false;this.respawn=null;this.tut=null;this.tileCracks=[];this.arrows=[];this.wave.active=false;this.cap=null;this.slashFx.length=0;this.modal=null;this.cine.freeze(false);this.cine.stop();
   this.stages.phase=null;this.stages.fade=0;this.stages.pend=0;this.stages.finale=false;this.gameOverT=0;this.reviveUsed={};}
- beginPlay(n){this.resetRun();this.stages.load(n);this.gameState='IN_GAME';this.audio.menuOn=false;this.audio.setMode('day');$('pauseBtn').style.display='flex';if(this.input.touch)$('touch').style.display='block';this.ui.toast('STAGE '+n,2);}
+ beginPlay(n){this.resetRun();this.stages.load(n);this.gameState='IN_GAME';this.audio.menuOn=false;this.audio.setMode('day');$('pauseBtn').style.display='flex';if(this.input.touch)$('touch').style.display='block';}
  toMenu(){this.gameState='MAIN_MENU';this.isPaused=false;$('touch').style.display='none';$('pauseBtn').style.display='none';this.menu.enter();}
  get isManDead(){return this.player.armor<=0;}
  get manArmor(){return this.player.armor;}
@@ -2016,7 +2041,7 @@ class Game{
   this.cap=null;this.slashFx.length=0;this.wave.active=false;
   M.hp=M.maxHp;M.fade=1;M.angle=0;M.fallT=0;M.rise=M.state==='DEAD'?1:0;M.vx=0;M.invul=1;M.setState('FOLLOW');P.ammo=P.maxAmmo;P.reloadT=0;
   for(const m of this.world.monsters){m.rage=false;m.hp=3;}
-  this.dayMode=true;this.world.theme=DAY_THEME;this.audio.setMode('day');this.cine.flash(.9);
+  this.dayMode=true;this.world.theme=dayThemeFor(this.stages.id);this.audio.setMode('day');this.cine.flash(.9);
   this.ui.toast('Mealin rises — dawn breaks',3);this.emit('restore');}
  spawnWave(){   // the stage's 4 stalkers become the rage targets
   currentStageEnemiesKilled=0;let st=this.world.monsters.filter(m=>m.wave&&m.alive);while(st.length<currentStageTargetKills){this.respawnFoe();st=this.world.monsters.filter(m=>m.wave&&m.alive);}this.wave={active:true,total:currentStageTargetKills,killed:0};
